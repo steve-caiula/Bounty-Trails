@@ -1,4 +1,6 @@
+#include <stdbool.h>
 #include "raylib.h"
+
 
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 450
@@ -40,10 +42,14 @@ int main (void)
 
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Bounty Trails");
     SetTargetFPS(60);
+    Image icon = LoadImage("resources/images/icon.png");
+    SetWindowIcon (icon);
+    UnloadImage(icon);
 
     // Setup initial values for our hunter
     hunter.position = (Vector2){ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f };
     hunter.speed = 300.0f;
+    hunter.health = 100;
     hunter.dollars = 0;
     
     // 4. Game Loop
@@ -61,10 +67,49 @@ int main (void)
         //         break;
         // }
 
+        switch (currentState)
+        {
+        case STATE_START:
+
+            if (IsKeyPressed (KEY_ENTER))
+            {
+                currentState = STATE_MENU;
+            }
+
+            break;
+
+        case STATE_MENU:
+
+            break;
+
+        case STATE_GAMEPLAY:
+            
+            if (hunter.health == 0)
+            {
+                currentState = STATE_GAMEOVER;
+            }
+            
+            break;
+
+        case STATE_GAMEOVER:
+
+            if (IsKeyPressed (KEY_ENTER))
+            {
+                currentState = STATE_MENU;
+                hunter.health = 100;
+                hunter.dollars = 0;
+                hunter.position = (Vector2){ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f };
+            }
+            
+            break;
+        
+        default:
+            break;
+        }
+
         // 6. Rendering (Drawing based on State)
         BeginDrawing();
-            ClearBackground(RAYWHITE);
-
+            
             // switch(currentState) {
             //     case MENU:
             //         // Draw title "BOUNTY TRAILS"
@@ -77,6 +122,31 @@ int main (void)
             //         // Draw UI (wallet, current bounty)
             //         break;
             // }
+        
+            switch (currentState)
+            {
+            case STATE_START:
+                ClearBackground(BEIGE);
+                DrawText("BOUNTY TRAILS", 250, 150, 40, RED);
+                DrawText("Press ENTER to start", 260, 220, 20, RED);
+                break;
+
+            case STATE_MENU:
+
+                break;
+
+            case STATE_GAMEPLAY:
+
+                break;
+
+            case STATE_GAMEOVER:
+                ClearBackground(BLACK);
+                break;
+        
+            default:
+                break;
+            }
+
         EndDrawing();
     }
 
