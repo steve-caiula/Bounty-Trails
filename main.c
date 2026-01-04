@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <math.h>
 #include "raylib.h"
 
 
@@ -40,11 +41,17 @@ int main (void)
     // Init window and audio
     // Set Target FPS
 
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Bounty Trails");
-    SetTargetFPS(60);
-    Image icon = LoadImage("resources/images/icon.png");
+    InitWindow (SCREEN_WIDTH, SCREEN_HEIGHT, "Bounty Trails");
+    SetTargetFPS (60);
+
+    Image icon = LoadImage ("resources/images/icon.png");
     SetWindowIcon (icon);
-    UnloadImage(icon);
+    UnloadImage (icon);
+
+    Texture2D logoTexture = LoadTexture("resources/images/logo.png");
+
+    Rectangle rect = {SCREEN_WIDTH/2,  SCREEN_HEIGHT/2, 150, 50};
+    float lineThick = 5.0;
 
     // Setup initial values for our hunter
     hunter.position = (Vector2){ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f };
@@ -79,7 +86,7 @@ int main (void)
             break;
 
         case STATE_MENU:
-
+            
             break;
 
         case STATE_GAMEPLAY:
@@ -108,7 +115,7 @@ int main (void)
         }
 
         // 6. Rendering (Drawing based on State)
-        BeginDrawing();
+        BeginDrawing ();
             
             // switch(currentState) {
             //     case MENU:
@@ -126,33 +133,44 @@ int main (void)
             switch (currentState)
             {
             case STATE_START:
-                ClearBackground(BEIGE);
-                DrawText("BOUNTY TRAILS", 250, 150, 40, RED);
-                DrawText("Press ENTER to start", 260, 220, 20, RED);
+                ClearBackground (BEIGE); 
+                DrawTexture (logoTexture, SCREEN_WIDTH/2 - logoTexture.width/2, 30, WHITE);
+
+                const char *startText = "Press ENTER to start";
+                int fontSize = 20;
+                int textWidth = MeasureText (startText, fontSize);
+                float alpha = (sinf (GetTime () * 2.0f) + 1.0f) / 2.0f;
+
+                DrawText (startText, SCREEN_WIDTH/2 - textWidth/2, 320, fontSize, Fade (BLACK, alpha));
                 break;
 
             case STATE_MENU:
-
+                ClearBackground (BEIGE);
+                const char *newGameText = "NEW GAME";
+                
+                DrawRectangleLinesEx (rect, lineThick, DARKBROWN);
+                DrawText (newGameText, SCREEN_WIDTH/2 - textWidth/2, 215, fontSize, DARKBROWN);
                 break;
 
             case STATE_GAMEPLAY:
-
+                ClearBackground (WHITE);
                 break;
 
             case STATE_GAMEOVER:
-                ClearBackground(BLACK);
+                ClearBackground (BLACK);
                 break;
         
             default:
                 break;
             }
 
-        EndDrawing();
+        EndDrawing ();
     }
 
     // 7. De-Initialization
     // Unload textures/sounds
-    CloseWindow();
+    UnloadTexture(logoTexture);
+    CloseWindow ();
 
     return 0;
 }
