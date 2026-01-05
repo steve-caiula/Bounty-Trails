@@ -25,17 +25,25 @@ typedef struct Player
     float speed;
     int health;
     int dollars;
+    Rectangle rect;
 } Player;
+
+typedef struct
+{
+    Rectangle rect;
+    const char *text;
+    int fontSize;
+    int textWidth;
+    bool isHovered;
+    Color buttonColor;
+} MenuButton;
+
 
 int main (void)
 {
-    // 2. Global Variables
-    // Current game state
-    // Player instance
+    // 2. Current game state
 
     GameState currentState = STATE_START;
-    Player hunter = {0};
-    hunter.health = 100;
 
     // 3. Initialization
     // Init window and audio
@@ -50,14 +58,24 @@ int main (void)
 
     Texture2D logoTexture = LoadTexture("resources/images/logo.png");
 
-    Rectangle rect = {SCREEN_WIDTH/2,  SCREEN_HEIGHT/2, 150, 50};
-    float lineThick = 5.0;
-
+    // Setup values for new game button
+    MenuButton newGame;
+    newGame.rect = (Rectangle){SCREEN_WIDTH/2.0f - 75, SCREEN_HEIGHT/2.0f - 25, 150, 50};
+    newGame.text = "NEW GAME";
+    newGame.fontSize  = 20;
+    newGame.textWidth = MeasureText (newGame.text, newGame.fontSize);
+    newGame.isHovered = false;
+    newGame.buttonColor = DARKBROWN;
+   
     // Setup initial values for our hunter
+    Player hunter;
     hunter.position = (Vector2){ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f };
     hunter.speed = 300.0f;
     hunter.health = 100;
     hunter.dollars = 0;
+    hunter.rect = (Rectangle){ SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 35, 40 };
+    hunter.rect.x = hunter.position.x;
+    hunter.rect.y = hunter.position.y;
     
     // 4. Game Loop
     while (!WindowShouldClose()) {
@@ -86,6 +104,13 @@ int main (void)
             break;
 
         case STATE_MENU:
+            newGame.isHovered = CheckCollisionPointRec (GetMousePosition (), newGame.rect);
+            newGame.buttonColor = (newGame.isHovered) ? MAROON : DARKBROWN;
+
+            if (newGame.isHovered && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) 
+            {
+                currentState = STATE_GAMEPLAY;
+            }
             
             break;
 
@@ -146,14 +171,18 @@ int main (void)
 
             case STATE_MENU:
                 ClearBackground (BEIGE);
-                const char *newGameText = "NEW GAME";
                 
-                DrawRectangleLinesEx (rect, lineThick, DARKBROWN);
-                DrawText (newGameText, SCREEN_WIDTH/2 - textWidth/2, 215, fontSize, DARKBROWN);
+                DrawRectangleRec (newGame.rect, newGame.buttonColor);
+
+                float textX = newGame.rect.x + (newGame.rect.width / 2.0f - newGame.textWidth / 2.0f);
+                float textY = newGame.rect.y + (newGame.rect.height / 2.0f - newGame.fontSize / 2.0f);
+                DrawText (newGame.text, textX, textY, newGame.fontSize, BEIGE);
                 break;
 
             case STATE_GAMEPLAY:
                 ClearBackground (WHITE);
+
+                DrawRectangleRec (hunter.rect, RED);
                 break;
 
             case STATE_GAMEOVER:
