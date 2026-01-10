@@ -1,10 +1,12 @@
 #include <stdbool.h>
 #include <math.h>
 #include "raylib.h"
-
+#include "raymath.h"
 
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 450
+#define PLAYER_WIDTH 35
+#define PLAYER_HEIGHT 40
 
 // 1. Enumerations and Structures
 // Define a GameState enum: MENU, GAMEPLAY, SETTINGS, etc.
@@ -56,7 +58,7 @@ int main (void)
     SetWindowIcon (icon);
     UnloadImage (icon);
 
-    Texture2D logoTexture = LoadTexture("resources/images/logo.png");
+    Texture2D logoTexture = LoadTexture ("resources/images/logo.png");
 
     // Setup values for new game button
     MenuButton newGame;
@@ -73,9 +75,13 @@ int main (void)
     hunter.speed = 300.0f;
     hunter.health = 100;
     hunter.dollars = 0;
-    hunter.rect = (Rectangle){ SCREEN_WIDTH/2, SCREEN_HEIGHT/2, 35, 40 };
+    hunter.rect = (Rectangle){ SCREEN_WIDTH/2, SCREEN_HEIGHT/2, PLAYER_WIDTH, PLAYER_HEIGHT };
     hunter.rect.x = hunter.position.x;
     hunter.rect.y = hunter.position.y;
+
+    // Vector 2 position bounds
+    Vector2 minBounds = { 0, 0 };
+    Vector2 maxBounds = { SCREEN_WIDTH - PLAYER_WIDTH, SCREEN_HEIGHT - PLAYER_HEIGHT };
     
     // 4. Game Loop
     while (!WindowShouldClose()) {
@@ -107,7 +113,7 @@ int main (void)
             newGame.isHovered = CheckCollisionPointRec (GetMousePosition (), newGame.rect);
             newGame.buttonColor = (newGame.isHovered) ? MAROON : DARKBROWN;
 
-            if (newGame.isHovered && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) 
+            if (newGame.isHovered && IsMouseButtonPressed (MOUSE_LEFT_BUTTON)) 
             {
                 currentState = STATE_GAMEPLAY;
             }
@@ -116,10 +122,39 @@ int main (void)
 
         case STATE_GAMEPLAY:
             
+            // Player death
             if (hunter.health == 0)
             {
                 currentState = STATE_GAMEOVER;
             }
+
+            // Player movement
+            if (IsKeyDown (KEY_W))
+            {
+                hunter.position.y -= hunter.speed * GetFrameTime ();
+            }
+            
+            if (IsKeyDown (KEY_S))
+            {
+                hunter.position.y += hunter.speed * GetFrameTime ();
+            }
+            
+            if (IsKeyDown (KEY_A))
+            {
+                hunter.position.x -= hunter.speed * GetFrameTime ();
+            }
+
+            if (IsKeyDown (KEY_D))
+            {
+                hunter.position.x += hunter.speed * GetFrameTime ();
+            }
+            
+            // Keep player inside the bounds
+            hunter.position = Vector2Clamp (hunter.position, minBounds, maxBounds);
+
+            // Player location on screen
+            hunter.rect.x = hunter.position.x;
+            hunter.rect.y = hunter.position.y;
             
             break;
 
