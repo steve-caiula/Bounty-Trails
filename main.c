@@ -8,6 +8,7 @@
 #define PLAYER_WIDTH 35
 #define PLAYER_HEIGHT 40
 #define BULLET_RADIUS 5
+#define MAX_BULLETS 50
 
 // 1. Enumerations and Structures
 // Define a GameState enum: MENU, GAMEPLAY, SETTINGS, etc.
@@ -92,33 +93,25 @@ int main (void)
     player.rect.y = player.position.y;
 
     // Setup initial values for bullets
-    Bullet bullet;
-    bullet.position;
-    bullet.direction;
-    bullet.active = false;
-    bullet.speed = 500.0f;
-    bullet.radius = BULLET_RADIUS;
-    bullet.damage = 100;
-
+    Bullet bullet[MAX_BULLETS];
+    for (int i = 0; i < MAX_BULLETS; i++)
+    {
+        bullet[i].position;
+        bullet[i].direction;
+        bullet[i].active = false;
+        bullet[i].speed = 500.0f;
+        bullet[i].radius = BULLET_RADIUS;
+        bullet[i].damage = 100;
+    }
+    
     // Vector 2 position bounds
     Vector2 minBounds = { 0, 0 };
     Vector2 maxBounds = { SCREEN_WIDTH - PLAYER_WIDTH, SCREEN_HEIGHT - PLAYER_HEIGHT };
     
-    // 4. Game Loop
+    // Game Loop
     while (!WindowShouldClose()) {
         
-        // 5. Update Logic (Decision making based on State)
-        // switch(currentState) {
-        //     case MENU:
-        //         // Handle menu input (e.g., press ENTER to start)
-        //         break;
-        //     case GAMEPLAY:
-        //         // Handle WASD movement
-        //         // Handle mouse aiming
-        //         // Handle shooting logic
-        //         break;
-        // }
-
+        // Update Logic (Decision making based on State)
         switch (currentState)
         {
         case STATE_START:
@@ -151,29 +144,44 @@ int main (void)
             };
 
             // Shoot
-            if (IsMouseButtonPressed (MOUSE_LEFT_BUTTON) && !bullet.active) 
+            if (IsMouseButtonPressed (MOUSE_LEFT_BUTTON)) 
             {
-                bullet.active = true;
-                bullet.position = playerCenter;
-    
-                // Direction: Mouse - Player
-                Vector2 target = GetMousePosition ();
-                Vector2 diff = Vector2Subtract (target, playerCenter);
-    
-                // Vector long 1.0 for constant speed
-                bullet.direction = Vector2Normalize (diff);
+                for (int i = 0; i < MAX_BULLETS; i++) 
+                {
+                    if (!bullet[i].active) // Find bullet not active
+                    { 
+                        bullet[i].active = true;
+                        bullet[i].position = playerCenter;
+            
+                        Vector2 target = GetMousePosition ();
+                        Vector2 diff = Vector2Subtract (target, playerCenter);
+                        bullet[i].direction = Vector2Normalize (diff);
+            
+                        break; // Stop in order to not shoot all 50 bullets
+                    }
+                }
             }
 
-            if (bullet.active) 
+            // Update all bullets in the pool
+            for (int i = 0; i < MAX_BULLETS; i++) 
             {
-                bullet.position.x += bullet.direction.x * bullet.speed * GetFrameTime();
-                bullet.position.y += bullet.direction.y * bullet.speed * GetFrameTime();
-
-                // Disable bullet when it leaves the screen
-                if (bullet.position.x < 0 || bullet.position.x > SCREEN_WIDTH ||
-                bullet.position.y < 0 || bullet.position.y > SCREEN_HEIGHT) 
+                // Only update the bullet if it is currently in flight
+                if (bullet[i].active) 
                 {
-                    bullet.active = false;
+                    // Calculate new position based on direction and speed
+                    bullet[i].position.x += bullet[i].direction.x * bullet[i].speed * GetFrameTime();
+                    bullet[i].position.y += bullet[i].direction.y * bullet[i].speed * GetFrameTime();
+
+                    // Check if the bullet has left the screen boundaries
+                    // We include the radius to ensure it's completely out of sight before deactivating
+                    if (bullet[i].position.x < -bullet[i].radius || 
+                    bullet[i].position.x > SCREEN_WIDTH + bullet[i].radius ||
+                    bullet[i].position.y < -bullet[i].radius || 
+                    bullet[i].position.y > SCREEN_HEIGHT + bullet[i].radius) 
+                    {
+                        // Set to false so this slot can be reused by a new shot
+                        bullet[i].active = false;
+                    }
                 }
             }
         
@@ -259,8 +267,17 @@ int main (void)
             case STATE_GAMEPLAY:
                 ClearBackground (WHITE);
 
+                // Draw the player
                 DrawRectangleRec (player.rect, RED);
-                DrawCircleV (bullet.position, bullet.radius, BLACK);
+
+                // Loop through the bullet pool and draw each active bullet
+                for (int i = 0; i < MAX_BULLETS; i++) 
+                {
+                    if (bullet[i].active) 
+                    {
+                        DrawCircleV (bullet[i].position, bullet[i].radius, BLACK);
+                    }
+                }
                 break;
 
             case STATE_GAMEOVER:
