@@ -7,6 +7,8 @@
 #define SCREEN_HEIGHT 450
 #define PLAYER_WIDTH 35
 #define PLAYER_HEIGHT 40
+#define ENEMY_WIDTH 35
+#define ENEMY_HEIGHT 40
 #define BULLET_RADIUS 5
 #define MAX_BULLETS 50
 
@@ -23,7 +25,7 @@ typedef enum
 
 // Define Player struct (position, speed, bounty, etc.)
 
-typedef struct
+typedef struct Player
 {
     Vector2 position;
     Vector2 direction;
@@ -33,7 +35,7 @@ typedef struct
     Rectangle rect;
 } Player;
 
-typedef struct 
+typedef struct Bullet
 {
     Vector2 position;
     Vector2 direction;
@@ -43,7 +45,19 @@ typedef struct
     int damage;
 } Bullet;
 
-typedef struct
+typedef struct Enemy
+{
+    Vector2 position;
+    Vector2 direction;
+    bool active;
+    float speed;
+    int health;
+    int bounty;
+    Rectangle rect;
+} Enemy;
+
+
+typedef struct MenuButton
 {
     Rectangle rect;
     const char *text;
@@ -103,6 +117,23 @@ int main (void)
         bullet[i].radius = BULLET_RADIUS;
         bullet[i].damage = 100;
     }
+
+    // Setup initial values for enemies
+    Enemy enemy[5];
+    for (int i = 0; i < 5; i++)
+    {
+        enemy[i].position.x = 100 + (i * 120);
+        enemy[i].position.y = 50;
+        enemy[i].direction;
+        enemy[i].active = true;
+        enemy[i].speed = 50.0f;
+        enemy[i].health = 100;
+        enemy[i].bounty = 10;
+        enemy[i].rect = (Rectangle){ SCREEN_WIDTH/2, SCREEN_HEIGHT/2, ENEMY_WIDTH, ENEMY_HEIGHT };
+        enemy[i].rect.x = enemy[i].position.x;
+        enemy[i].rect.y = enemy[i].position.y;
+    }
+    
     
     // Vector 2 position bounds
     Vector2 minBounds = { 0, 0 };
@@ -184,9 +215,41 @@ int main (void)
                     }
                 }
             }
+
+            // Check collision: Bullets vs Enemies
+            for (int i = 0; i < MAX_BULLETS; i++) 
+            {
+                if (bullet[i].active) 
+                {
+                    for (int j = 0; j < 5; j++) 
+                    {
+                        if (enemy[j].active) 
+                        {
+                            // Check if the bullet circle overlaps the enemy rectangle
+                            if (CheckCollisionCircleRec (bullet[i].position, bullet[i].radius, enemy[j].rect)) 
+                            {
+                                // 1. Deactivate the bullet
+                                bullet[i].active = false;
+                    
+                                // 2. Subtract damage from enemy health
+                                enemy[j].health -= bullet[i].damage;
+                    
+                                // 3. Check if enemy is dead
+                                if (enemy[j].health <= 0) 
+                                {
+                                    enemy[j].active = false;
+                                    player.dollars += enemy[j].bounty; // Reward the player!
+                                }
+                    
+                                break; // Exit the enemy loop since the bullet is gone
+                            }
+                        }
+                    }
+                }
+            }
         
             // Player death
-            if (player.health == 0)
+            if (player.health <= 0)
             {
                 currentState = STATE_GAMEOVER;
             }
@@ -225,10 +288,20 @@ int main (void)
 
             if (IsKeyPressed (KEY_ENTER))
             {
-                currentState = STATE_MENU;
-                player.health = 100;
-                player.dollars = 0;
-                player.position = (Vector2){ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f };
+                currentState = STATE_MENU; // Back to MENU
+                player.health = 100; // Revive player
+                player.dollars = 0; // Reset player's dollars
+                player.position = (Vector2){ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f }; // Reset player's spawn
+
+                // Revive enemies and reset enemies' spawn
+                for (int i = 0; i < 5; i++)
+                {
+                    enemy[i].health = 100;
+                    enemy[i].active = true;
+                    enemy[i].position.x = 100 + (i * 120);
+                    enemy[i].position.y = 50;
+                }
+                
             }
             
             break;
@@ -268,7 +341,7 @@ int main (void)
                 ClearBackground (WHITE);
 
                 // Draw the player
-                DrawRectangleRec (player.rect, RED);
+                DrawRectangleRec (player.rect, GREEN);
 
                 // Loop through the bullet pool and draw each active bullet
                 for (int i = 0; i < MAX_BULLETS; i++) 
@@ -276,6 +349,15 @@ int main (void)
                     if (bullet[i].active) 
                     {
                         DrawCircleV (bullet[i].position, bullet[i].radius, BLACK);
+                    }
+                }
+
+                // Draw the enemies
+                for (int i = 0; i < 5; i++) 
+                {
+                    if (enemy[i].active) 
+                    {
+                        DrawRectangleRec (enemy[i].rect, RED);
                     }
                 }
                 break;
