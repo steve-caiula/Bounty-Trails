@@ -3,8 +3,6 @@
 #include "raylib.h"
 #include "raymath.h"
 
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 450
 #define PLAYER_WIDTH 35
 #define PLAYER_HEIGHT 40
 #define ENEMY_WIDTH 35
@@ -31,9 +29,21 @@ typedef struct Player
     Vector2 direction;
     float speed;
     int health;
+    int maxHealth;
     int dollars;
     Rectangle rect;
 } Player;
+
+typedef struct PlayerHud
+{
+    Rectangle healthBar;
+    Rectangle backgroundBar;
+    float maxHealth;
+    
+    Vector2 dollarsPosition;
+    int fontSize;
+    Color moneyColor;
+} PlayerHud;
 
 typedef struct Bullet
 {
@@ -78,8 +88,11 @@ int main (void)
     // Init window and audio
     // Set Target FPS
 
-    InitWindow (SCREEN_WIDTH, SCREEN_HEIGHT, "Bounty Trails");
+    InitWindow (0, 0, "Bounty Trails");
+    ToggleFullscreen();
     SetTargetFPS (60);
+    float screenWidth = GetScreenWidth ();
+    float screenHeight = GetScreenHeight ();
 
     Image icon = LoadImage ("resources/images/icon.png");
     SetWindowIcon (icon);
@@ -89,22 +102,41 @@ int main (void)
 
     // Setup values for new game button
     MenuButton newGame;
-    newGame.rect = (Rectangle){SCREEN_WIDTH/2.0f - 75, SCREEN_HEIGHT/2.0f - 25, 150, 50};
+    newGame.rect.width = 300.0f;  
+    newGame.rect.height = 80.0f; 
+    newGame.rect.x = screenWidth / 2.0f - newGame.rect.width / 2.0f;
+    newGame.rect.y = screenHeight / 2.0f - newGame.rect.height / 2.0f;
     newGame.text = "NEW GAME";
-    newGame.fontSize  = 20;
+    newGame.fontSize  = 40;
     newGame.textWidth = MeasureText (newGame.text, newGame.fontSize);
     newGame.isHovered = false;
     newGame.buttonColor = DARKBROWN;
    
     // Setup initial values for player
     Player player;
-    player.position = (Vector2){ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f };
+    player.position = (Vector2){ screenWidth / 2.0f, screenHeight / 2.0f };
     player.speed = 300.0f;
     player.health = 100;
+    player.maxHealth = 100;
     player.dollars = 0;
-    player.rect = (Rectangle){ SCREEN_WIDTH/2, SCREEN_HEIGHT/2, PLAYER_WIDTH, PLAYER_HEIGHT };
+    player.rect = (Rectangle){ player.position.x, player.position.y, PLAYER_WIDTH, PLAYER_HEIGHT };
     player.rect.x = player.position.x;
     player.rect.y = player.position.y;
+
+    // Setup initial values for player's HUD
+    PlayerHud playerHUD;
+    playerHUD.healthBar.width = 200.0f;
+    playerHUD.healthBar.height = 50.0f;
+    playerHUD.healthBar.x = 20.0f;
+    playerHUD.healthBar.y = 20.0f;
+    playerHUD.backgroundBar.width = 200.0f;
+    playerHUD.backgroundBar.height = 50.0f;
+    playerHUD.backgroundBar.x = 20.0f;
+    playerHUD.backgroundBar.y = 20.0f;
+    playerHUD.maxHealth = player.maxHealth;
+    playerHUD.dollarsPosition = (Vector2){ 20.0f, 80.0f};
+    playerHUD.fontSize = 40;
+    playerHUD.moneyColor = DARKGREEN;
 
     // Setup initial values for bullets
     Bullet bullet[MAX_BULLETS];
@@ -113,7 +145,7 @@ int main (void)
         bullet[i].position;
         bullet[i].direction;
         bullet[i].active = false;
-        bullet[i].speed = 500.0f;
+        bullet[i].speed = 600.0f;
         bullet[i].radius = BULLET_RADIUS;
         bullet[i].damage = 100;
     }
@@ -129,7 +161,7 @@ int main (void)
         enemy[i].speed = 50.0f;
         enemy[i].health = 100;
         enemy[i].bounty = 10;
-        enemy[i].rect = (Rectangle){ SCREEN_WIDTH/2, SCREEN_HEIGHT/2, ENEMY_WIDTH, ENEMY_HEIGHT };
+        enemy[i].rect = (Rectangle){ enemy[i].position.x, enemy[i].position.y, ENEMY_WIDTH, ENEMY_HEIGHT };
         enemy[i].rect.x = enemy[i].position.x;
         enemy[i].rect.y = enemy[i].position.y;
     }
@@ -137,7 +169,7 @@ int main (void)
     
     // Vector 2 position bounds
     Vector2 minBounds = { 0, 0 };
-    Vector2 maxBounds = { SCREEN_WIDTH - PLAYER_WIDTH, SCREEN_HEIGHT - PLAYER_HEIGHT };
+    Vector2 maxBounds = { screenWidth - PLAYER_WIDTH, screenHeight - PLAYER_HEIGHT };
     
     // Game Loop
     while (!WindowShouldClose()) {
@@ -206,9 +238,9 @@ int main (void)
                     // Check if the bullet has left the screen boundaries
                     // We include the radius to ensure it's completely out of sight before deactivating
                     if (bullet[i].position.x < -bullet[i].radius || 
-                    bullet[i].position.x > SCREEN_WIDTH + bullet[i].radius ||
+                    bullet[i].position.x > screenWidth + bullet[i].radius ||
                     bullet[i].position.y < -bullet[i].radius || 
-                    bullet[i].position.y > SCREEN_HEIGHT + bullet[i].radius) 
+                    bullet[i].position.y > screenHeight + bullet[i].radius) 
                     {
                         // Set to false so this slot can be reused by a new shot
                         bullet[i].active = false;
@@ -291,7 +323,7 @@ int main (void)
                 currentState = STATE_MENU; // Back to MENU
                 player.health = 100; // Revive player
                 player.dollars = 0; // Reset player's dollars
-                player.position = (Vector2){ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f }; // Reset player's spawn
+                player.position = (Vector2){ screenWidth / 2.0f, screenHeight / 2.0f }; // Reset player's spawn
 
                 // Revive enemies and reset enemies' spawn
                 for (int i = 0; i < 5; i++)
@@ -316,15 +348,23 @@ int main (void)
             switch (currentState)
             {
             case STATE_START:
+                float logoScale = 2.5f;
+            
                 ClearBackground (BEIGE); 
-                DrawTexture (logoTexture, SCREEN_WIDTH/2 - logoTexture.width/2, 30, WHITE);
+                DrawTextureEx (
+                    logoTexture, 
+                    (Vector2){ GetScreenWidth () / 2.0f - (logoTexture.width * logoScale) / 2.0f, GetScreenHeight () / 10.0f }, 
+                    0.0f, 
+                    logoScale, 
+                    WHITE
+                );
 
                 const char *startText = "Press ENTER to start";
-                int fontSize = 20;
+                int fontSize = 60;
                 int textWidth = MeasureText (startText, fontSize);
                 float alpha = (sinf (GetTime () * 2.0f) + 1.0f) / 2.0f;
 
-                DrawText (startText, SCREEN_WIDTH/2 - textWidth/2, 320, fontSize, Fade (BLACK, alpha));
+                DrawText (startText, GetScreenWidth() / 2 - textWidth / 2, GetScreenHeight () * 0.75f, fontSize, Fade (BLACK, alpha));
                 break;
 
             case STATE_MENU:
@@ -342,6 +382,27 @@ int main (void)
 
                 // Draw the player
                 DrawRectangleRec (player.rect, GREEN);
+
+                // Draw player's HUD
+                // Background bar
+                DrawRectangleRec (playerHUD.backgroundBar, GRAY);
+
+                // Health bar
+                float healthPercent = (float)player.health / (float)player.maxHealth;
+                playerHUD.healthBar.width = healthPercent * playerHUD.backgroundBar.width;
+
+                Color healthColor = GREEN;
+                if (healthPercent <= 0.5f && healthPercent > 0.3f) healthColor = YELLOW;
+                else if (healthPercent <= 0.3f) healthColor = RED;
+                
+                // Dollars
+                DrawText (
+                    TextFormat ("$: %d", player.dollars), 
+                    playerHUD.dollarsPosition.x, 
+                    playerHUD.dollarsPosition.y, 
+                    playerHUD.fontSize, 
+                    playerHUD.moneyColor
+                );
 
                 // Loop through the bullet pool and draw each active bullet
                 for (int i = 0; i < MAX_BULLETS; i++) 
