@@ -21,8 +21,7 @@ typedef enum
     STATE_GAMEOVER
 } GameState;
 
-// Define Player struct (position, speed, bounty, etc.)
-
+// Define Player struct
 typedef struct Player
 {
     Vector2 position;
@@ -88,6 +87,7 @@ int main (void)
     // Init window and audio
     // Set Target FPS
 
+    SetConfigFlags(FLAG_VSYNC_HINT);
     InitWindow (0, 0, "Bounty Trails");
     ToggleFullscreen();
     SetTargetFPS (60);
@@ -394,6 +394,7 @@ int main (void)
                 Color healthColor = GREEN;
                 if (healthPercent <= 0.5f && healthPercent > 0.3f) healthColor = YELLOW;
                 else if (healthPercent <= 0.3f) healthColor = RED;
+                DrawRectangleRec (playerHUD.healthBar, healthColor);
                 
                 // Dollars
                 DrawText (
