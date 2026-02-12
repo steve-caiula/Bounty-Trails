@@ -87,12 +87,11 @@ int main (void)
     // Init window and audio
     // Set Target FPS
 
-    SetConfigFlags(FLAG_VSYNC_HINT);
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_FULLSCREEN_MODE);
     InitWindow (0, 0, "Bounty Trails");
-    ToggleFullscreen();
     SetTargetFPS (60);
-    float screenWidth = GetScreenWidth ();
-    float screenHeight = GetScreenHeight ();
+    float screenWidth = (float)GetScreenWidth ();
+    float screenHeight = (float)GetScreenHeight ();
 
     Image icon = LoadImage ("resources/images/icon.png");
     SetWindowIcon (icon);
